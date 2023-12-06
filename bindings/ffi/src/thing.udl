@@ -1,0 +1,7 @@
+namespace thing {
+    MyClass create_myclass();
+};
+
+interface MyClass {
+    string my_method();
+};

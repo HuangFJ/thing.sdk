@@ -1,0 +1,2 @@
+[workspace]
+members = ["uniffi-bindgen", "bindings/ffi", "crates/hd-wallet"]
