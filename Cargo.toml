@@ -1,2 +1,3 @@
 [workspace]
-members = ["uniffi-bindgen", "bindings/ffi", "crates/hd-wallet"]
+resolver = "2"
+members = ["uniffi-bindgen", "bindings/ffi"]

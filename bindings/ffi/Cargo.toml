@@ -1,5 +1,5 @@
 [package]
-name = "ffi"
+name = "thing"
 version = "0.1.0"
 edition = "2021"
 
@@ -11,7 +11,7 @@ crate-type = ["cdylib", "staticlib"]
 [dependencies]
 uniffi = "0.25"
 uniffi_macros = "0.25"
-hd-wallet = { path = "../../crates/hd-wallet" }
+bitcoin = { version = "0.31", features = ["rand-std"] }
 
 [build-dependencies]
 uniffi_build = { version = "0.25", features = ["builtin-bindgen"] }

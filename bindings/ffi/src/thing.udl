@@ -1,7 +1,12 @@
 namespace thing {
-    MyClass create_myclass();
+
 };
 
-interface MyClass {
-    string my_method();
+interface HDWallet {
+    constructor(u8 coin_type, string seed_hex);
+    [Name=from_master_priv]
+    constructor(string master_priv);
+    string bip44_address();
+    string bip86_address();
+    string export_master_priv();
 };
