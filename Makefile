@@ -1,4 +1,6 @@
 FFI_NAMESPACE := thing
+NDK_TOOLCHAINS_PATH ?= /Users/jon/Library/Android/sdk/ndk/24.0.8215888/toolchains/llvm/prebuilt/darwin-x86_64/bin
+
 IOS_PROJECT := ../../projects/ios
 ANDROID_PROJECT := ../../projects/android
 
@@ -6,6 +8,7 @@ IOS_LIB := lib$(FFI_NAMESPACE).a
 ANDROID_LIB := lib$(FFI_NAMESPACE).so
 ANDROID_TARGET_LIB := libuniffi_$(FFI_NAMESPACE).so
 
+export PATH := ${NDK_TOOLCHAINS_PATH}:${PATH}
 
 all: ios android-aarch64 android-x86_64
 
@@ -41,6 +44,7 @@ ios:
 	  -output $(IOS_PROJECT)/$(FFI_NAMESPACE).xcframework
 
 android-aarch64:
+	cd ${NDK_TOOLCHAINS_PATH} && ln -sf aarch64-linux-android32-clang aarch64-linux-android-clang && ln -sf llvm-ar aarch64-linux-android-ar
 	cd bindings/ffi && \
 	cargo build --release --target aarch64-linux-android && \
 	mkdir -p $(ANDROID_PROJECT)/app/src/main/jniLibs/aarch64 && \
@@ -51,6 +55,7 @@ android-aarch64:
 		$(ANDROID_PROJECT)/app/src/main/jniLibs/arm64-v8a/$(ANDROID_TARGET_LIB)
 
 android-x86_64:
+	cd ${NDK_TOOLCHAINS_PATH} && ln -sf x86_64-linux-android32-clang x86_64-linux-android-clang && ln -sf llvm-ar x86_64-linux-android-ar
 	cd bindings/ffi && \
 	cargo build --release --target x86_64-linux-android && \
 	mkdir -p $(ANDROID_PROJECT)/app/src/main/jniLibs/x86_64 && \
