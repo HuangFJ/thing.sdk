@@ -1,8 +1,8 @@
 /target
 *.so
 *.a
-/projects/ios/headers/*FFI.h
-/projects/ios/headers/*.modulemap
-/projects/ios/Sources
+/projects/ios/headers/thingFFI.h
+/projects/ios/headers/thingFFI.modulemap
+/projects/ios/Sources/thing.swift
 /projects/ios/*.xcframework
 .DS_Store

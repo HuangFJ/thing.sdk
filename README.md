@@ -9,10 +9,26 @@ cargo install --path uniffi-bindgen
 NDK_TOOLCHAINS_PATH=/Users/jon/Library/Android/sdk/ndk/24.0.8215888/toolchains/llvm/prebuilt/darwin-x86_64/bin
 ```
 
+## Build
+```shell
+make
+```
+
 ## iOS
+It will generate the following files:
+- `projects/ios/headers/thingFFI.h` - C header file
+- `projects/ios/headers/thingFFI.modulemap` - C modulemap file
+- `projects/ios/Sources/thing.swift` - Swift wrapper
+- `projects/ios/thing.xcframework` - XCFramework
+
 ### Add generated headers and xcframework to the project
-Drag and drop the `headers`, `Sources` folders and `thing.xcframework` to the Xcode project.
+Open the Xcode project in the `projects/ios` folder. Add the `headers/thingFFI.*`, `Sources/thing.swift` and `thing.xcframework` files to the responding folders in the Xcode project.
 
-### Tell swiftc where to find the generated headers
-In Xcode, select app's main target -> build settings -> Objective-C Bridging Header -> add the path to the bridging header file: `headers/Bridging-Header.h`.
-
+### Back to the code
+```swift
+let wallet = HdWallet.init(coinType: 0, seedHex: "92ff6cd1fc51db4fd09d4204750c3e72a117488ce893d08811833ecca502e333d149ead97d80f7cb5f347ba9cf5cecb4745cd7dcd4c6dd8d528997086f445a3c")
+let masterPriv = wallet.exportMasterPriv()
+let wallet = HdWallet.fromMasterPriv(masterPriv: masterPriv)
+wallet.bip44Address()
+wallet.bip86Address()
+```
