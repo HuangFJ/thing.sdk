@@ -1,3 +1,8 @@
 /target
 *.so
 *.a
+/projects/ios/headers/*FFI.h
+/projects/ios/headers/*.modulemap
+/projects/ios/Sources
+/projects/ios/*.xcframework
+.DS_Store
