@@ -1,12 +1,14 @@
 namespace thing {
-
+    string taproot_sign(string wallet, string priv_hex, string tx_hex, string utxos_json);
 };
 
 interface HDWallet {
     constructor(u8 coin_type, string seed_hex);
     [Name=from_master_priv]
     constructor(string master_priv);
+    string export_master_priv();
     string bip44_address();
     string bip86_address();
-    string export_master_priv();
+    string bip44_priv_hex();
+    string bip86_priv_hex();
 };
