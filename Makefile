@@ -10,7 +10,7 @@ ANDROID_TARGET_LIB := libuniffi_$(FFI_NAMESPACE).so
 
 export PATH := ${NDK_TOOLCHAINS_PATH}:${PATH}
 
-all: ios android-aarch64 android-x86_64
+all: ios android-aarch64 android-x86_64 armv7-linux-androideabi
 
 ios: 
 	cd bindings/ffi && \
@@ -47,9 +47,6 @@ android-aarch64:
 	cd ${NDK_TOOLCHAINS_PATH} && ln -sf aarch64-linux-android32-clang aarch64-linux-android-clang && ln -sf llvm-ar aarch64-linux-android-ar
 	cd bindings/ffi && \
 	cargo build --release --target aarch64-linux-android && \
-	mkdir -p $(ANDROID_PROJECT)/app/src/main/jniLibs/aarch64 && \
-	cp ../../target/aarch64-linux-android/release/$(ANDROID_LIB) \
-		$(ANDROID_PROJECT)/app/src/main/jniLibs/aarch64/$(ANDROID_TARGET_LIB) && \
 	mkdir -p $(ANDROID_PROJECT)/app/src/main/jniLibs/arm64-v8a && \
 	cp ../../target/aarch64-linux-android/release/$(ANDROID_LIB) \
 		$(ANDROID_PROJECT)/app/src/main/jniLibs/arm64-v8a/$(ANDROID_TARGET_LIB)
@@ -61,3 +58,11 @@ android-x86_64:
 	mkdir -p $(ANDROID_PROJECT)/app/src/main/jniLibs/x86_64 && \
 	cp ../../target/x86_64-linux-android/release/$(ANDROID_LIB) \
 		$(ANDROID_PROJECT)/app/src/main/jniLibs/x86_64/$(ANDROID_TARGET_LIB)
+
+armv7-linux-androideabi:
+	cd ${NDK_TOOLCHAINS_PATH} && ln -sf armv7a-linux-androideabi32-clang arm-linux-androideabi-clang && ln -sf llvm-ar arm-linux-androideabi-ar
+	cd bindings/ffi && \
+	cargo build --release --target armv7-linux-androideabi && \
+	mkdir -p $(ANDROID_PROJECT)/app/src/main/jniLibs/armeabi-v7a && \
+	cp ../../target/armv7-linux-androideabi/release/$(ANDROID_LIB) \
+		$(ANDROID_PROJECT)/app/src/main/jniLibs/armeabi-v7a/$(ANDROID_TARGET_LIB)
