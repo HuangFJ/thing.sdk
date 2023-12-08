@@ -31,6 +31,10 @@ let masterPriv = wallet.exportMasterPriv()
 let wallet = HdWallet.fromMasterPriv(masterPriv: masterPriv)
 wallet.bip44Address()
 wallet.bip86Address()
+// sign a p2pkh tx
+p2pkhSign(coinType: 0, privHex: "", txHex: "")
+// sign a p2tr tx
+p2trSign(coinType: 0, privHex: "", txHex: "", txPrevoutsJson: "[]")
 ```
 
 ## Android
@@ -47,4 +51,8 @@ val masterPriv = wallet.exportMasterPriv()
 val wallet = HdWallet.fromMasterPriv(masterPriv)
 wallet.bip44Address()
 wallet.bip86Address()
+// sign a p2pkh tx
+p2pkhSign(0u, "", "")
+// sign a p2tr tx
+p2trSign(0u, "", "", "[]")
 ```
