@@ -1,18 +1,30 @@
-use bitcoin::hashes::hex::FromHex;
-use bitcoin::script::PushBytesBuf;
-use bitcoin::secp256k1::Secp256k1;
 use bitcoin::{
-    consensus::deserialize,
+    consensus, ecdsa,
+    hashes::hex::FromHex,
     hashes::Hash,
     hex::DisplayHex,
     key::{TapTweak, TweakedKeypair},
-    secp256k1::{Keypair, Message, SecretKey},
-    sighash::SighashCache,
-    TxOut,
+    script,
+    secp256k1::{Keypair, Message, Secp256k1, SecretKey},
+    sighash::{Prevouts, SighashCache},
+    taproot, Address, Amount, EcdsaSighashType, Network, OutPoint, PublicKey, TapSighashType,
+    Transaction, TxOut, Txid,
 };
-use bitcoin::{script, Address, Amount, PublicKey, Transaction};
 use std::str::FromStr;
 
+/// ### Sign a tx with p2tr address
+///
+/// coin_type:
+/// 0 for mainnet, 1 for testnet
+///
+/// priv_hex:
+/// private key in hex, the tx inputs are locked by the p2tr address of this private key
+///
+/// tx_hex:
+/// unsigned transaction in hex
+///
+/// tx_prevouts_json:
+/// responding prevouts of tx inputs like [{"txid": "xxx", "vout": 0, "amount": 0.0001}, ...]
 pub fn p2tr_sign(
     coin_type: u8,
     priv_hex: String,
@@ -20,12 +32,13 @@ pub fn p2tr_sign(
     tx_prevouts_json: String,
 ) -> String {
     let mut unsigned_tx =
-        deserialize::<Transaction>(&Vec::<u8>::from_hex(tx_hex.as_str()).unwrap()).unwrap();
+        consensus::deserialize::<Transaction>(&Vec::<u8>::from_hex(tx_hex.as_str()).unwrap())
+            .unwrap();
 
     let secp = Secp256k1::new();
     let network = match coin_type {
-        0 => bitcoin::Network::Bitcoin,
-        1 => bitcoin::Network::Testnet,
+        0 => Network::Bitcoin,
+        1 => Network::Testnet,
         _ => unreachable!(),
     };
     let private_key = SecretKey::from_str(priv_hex.as_str()).unwrap();
@@ -44,11 +57,11 @@ pub fn p2tr_sign(
             let vout = v["vout"].as_u64().unwrap() as u32;
             let amount = v["amount"].as_f64().unwrap();
             (
-                bitcoin::OutPoint {
-                    txid: bitcoin::Txid::from_str(txid).unwrap(),
+                OutPoint {
+                    txid: Txid::from_str(txid).unwrap(),
                     vout,
                 },
-                bitcoin::TxOut {
+                TxOut {
                     value: Amount::from_btc(amount).unwrap(),
                     script_pubkey: user_addr.script_pubkey(),
                 },
@@ -56,14 +69,14 @@ pub fn p2tr_sign(
         })
         .collect::<Vec<_>>();
     let txouts = utxos.into_iter().map(|(_, v)| v).collect::<Vec<TxOut>>();
-    let prevouts = bitcoin::sighash::Prevouts::All(&txouts);
+    let prevouts = Prevouts::All(&txouts);
 
     let keypair = Keypair::from_secret_key(&secp, &private_key);
     let tweaked: TweakedKeypair = keypair.tap_tweak(&secp, None);
 
     let input_len = unsigned_tx.input.len();
 
-    let hash_ty = bitcoin::TapSighashType::Default;
+    let hash_ty = TapSighashType::Default;
     let mut sighash_cache = SighashCache::new(&mut unsigned_tx);
     for i in 0..input_len {
         let sighash = sighash_cache
@@ -72,7 +85,7 @@ pub fn p2tr_sign(
 
         let msg = Message::from_digest(sighash.to_byte_array());
 
-        let signature = bitcoin::taproot::Signature {
+        let signature = taproot::Signature {
             sig: secp.sign_schnorr(&msg, &tweaked.to_inner()),
             hash_ty,
         };
@@ -84,21 +97,30 @@ pub fn p2tr_sign(
     }
 
     let tx = sighash_cache.into_transaction();
-    let tx_hex = bitcoin::consensus::encode::serialize(&tx)
-        .as_hex()
-        .to_string();
+    let tx_hex = consensus::serialize(&tx).as_hex().to_string();
 
     tx_hex
 }
 
+/// ### Sign a tx with p2pkh address
+///
+/// coin_type:
+/// 0 for mainnet, 1 for testnet
+///
+/// priv_hex:
+/// private key in hex, the tx inputs are locked by the p2pkh address of this private key
+///
+/// tx_hex:
+/// unsigned transaction in hex
 pub fn p2pkh_sign(coin_type: u8, priv_hex: String, tx_hex: String) -> String {
     let mut unsigned_tx =
-        deserialize::<Transaction>(&Vec::<u8>::from_hex(tx_hex.as_str()).unwrap()).unwrap();
+        consensus::deserialize::<Transaction>(&Vec::<u8>::from_hex(tx_hex.as_str()).unwrap())
+            .unwrap();
 
     let secp = Secp256k1::new();
     let network = match coin_type {
-        0 => bitcoin::Network::Bitcoin,
-        1 => bitcoin::Network::Testnet,
+        0 => Network::Bitcoin,
+        1 => Network::Testnet,
         _ => unreachable!(),
     };
     let private_key = SecretKey::from_str(priv_hex.as_str()).unwrap();
@@ -107,7 +129,7 @@ pub fn p2pkh_sign(coin_type: u8, priv_hex: String, tx_hex: String) -> String {
 
     let input_len = unsigned_tx.input.len();
 
-    let hash_ty = bitcoin::EcdsaSighashType::All;
+    let hash_ty = EcdsaSighashType::All;
     let sighash_cache = SighashCache::new(&mut unsigned_tx);
     let mut script_sigs = Vec::new();
     for i in 0..input_len {
@@ -117,13 +139,13 @@ pub fn p2pkh_sign(coin_type: u8, priv_hex: String, tx_hex: String) -> String {
 
         let msg = Message::from_digest(sighash.to_byte_array());
 
-        let signature = bitcoin::ecdsa::Signature {
+        let signature = ecdsa::Signature {
             sig: secp.sign_ecdsa(&msg, &private_key),
             hash_ty,
         }
         .serialize();
 
-        let mut push_bytes = PushBytesBuf::new();
+        let mut push_bytes = script::PushBytesBuf::new();
         push_bytes.extend_from_slice(signature.as_ref()).unwrap();
 
         let script_sig = script::Builder::new()
@@ -136,15 +158,7 @@ pub fn p2pkh_sign(coin_type: u8, priv_hex: String, tx_hex: String) -> String {
     for i in 0..input_len {
         tx.input[i].script_sig = script_sigs[i].clone();
     }
-    let tx_hex = bitcoin::consensus::encode::serialize(&tx)
-        .as_hex()
-        .to_string();
+    let tx_hex = consensus::serialize(&tx).as_hex().to_string();
 
     tx_hex
 }
-
-#[test]
-fn test_p2tr_sign() {}
-
-#[test]
-fn test_p2pkh_sign() {}
