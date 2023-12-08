@@ -1,5 +1,6 @@
 namespace thing {
     string p2tr_sign(u8 coin_type, string priv_hex, string tx_hex, string tx_prevouts_json);
+    string p2pkh_sign(u8 coin_type, string priv_hex, string tx_hex);
 };
 
 interface HDWallet {

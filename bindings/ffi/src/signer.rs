@@ -1,7 +1,5 @@
-use std::str::FromStr;
-
-use bitcoin::bip32::{Xpub, Xpriv};
 use bitcoin::hashes::hex::FromHex;
+use bitcoin::script::PushBytesBuf;
 use bitcoin::secp256k1::Secp256k1;
 use bitcoin::{
     consensus::deserialize,
@@ -12,7 +10,8 @@ use bitcoin::{
     sighash::SighashCache,
     TxOut,
 };
-use bitcoin::{Address, Amount, Transaction, PublicKey, PrivateKey};
+use bitcoin::{script, Address, Amount, PublicKey, Transaction};
+use std::str::FromStr;
 
 pub fn p2tr_sign(
     coin_type: u8,
@@ -20,7 +19,7 @@ pub fn p2tr_sign(
     tx_hex: String,
     tx_prevouts_json: String,
 ) -> String {
-    let mut commit_tx =
+    let mut unsigned_tx =
         deserialize::<Transaction>(&Vec::<u8>::from_hex(tx_hex.as_str()).unwrap()).unwrap();
 
     let secp = Secp256k1::new();
@@ -62,10 +61,10 @@ pub fn p2tr_sign(
     let keypair = Keypair::from_secret_key(&secp, &private_key);
     let tweaked: TweakedKeypair = keypair.tap_tweak(&secp, None);
 
-    let input_len = commit_tx.input.len();
+    let input_len = unsigned_tx.input.len();
 
     let hash_ty = bitcoin::TapSighashType::Default;
-    let mut sighash_cache = SighashCache::new(&mut commit_tx);
+    let mut sighash_cache = SighashCache::new(&mut unsigned_tx);
     for i in 0..input_len {
         let sighash = sighash_cache
             .taproot_key_spend_signature_hash(i, &prevouts, hash_ty)
@@ -92,12 +91,8 @@ pub fn p2tr_sign(
     tx_hex
 }
 
-pub fn p2pkh_sign(
-    coin_type: u8,
-    priv_hex: String,
-    tx_hex: String,
-) {
-    let mut commit_tx =
+pub fn p2pkh_sign(coin_type: u8, priv_hex: String, tx_hex: String) -> String {
+    let mut unsigned_tx =
         deserialize::<Transaction>(&Vec::<u8>::from_hex(tx_hex.as_str()).unwrap()).unwrap();
 
     let secp = Secp256k1::new();
@@ -107,19 +102,17 @@ pub fn p2pkh_sign(
         _ => unreachable!(),
     };
     let private_key = SecretKey::from_str(priv_hex.as_str()).unwrap();
-    let pubkey =PublicKey::new(private_key.public_key(&secp));
-    let user_addr = Address::p2pkh(
-        &pubkey,
-        network,
-    );
+    let pubkey = PublicKey::new(private_key.public_key(&secp));
+    let user_addr = Address::p2pkh(&pubkey, network);
 
-    let input_len = commit_tx.input.len();
+    let input_len = unsigned_tx.input.len();
 
     let hash_ty = bitcoin::EcdsaSighashType::All;
-    let mut sighash_cache = SighashCache::new(&mut commit_tx);
+    let sighash_cache = SighashCache::new(&mut unsigned_tx);
+    let mut script_sigs = Vec::new();
     for i in 0..input_len {
         let sighash = sighash_cache
-        .legacy_signature_hash(i, user_addr.script_pubkey().as_script(), hash_ty.to_u32())
+            .legacy_signature_hash(i, user_addr.script_pubkey().as_script(), hash_ty.to_u32())
             .unwrap();
 
         let msg = Message::from_digest(sighash.to_byte_array());
@@ -127,12 +120,31 @@ pub fn p2pkh_sign(
         let signature = bitcoin::ecdsa::Signature {
             sig: secp.sign_ecdsa(&msg, &private_key),
             hash_ty,
-        };
+        }
+        .serialize();
 
-        sighash_cache
-            .witness_mut(i)
-            .unwrap()
-            .push(signature.to_vec());
-            
+        let mut push_bytes = PushBytesBuf::new();
+        push_bytes.extend_from_slice(signature.as_ref()).unwrap();
+
+        let script_sig = script::Builder::new()
+            .push_slice(&push_bytes)
+            .push_key(&pubkey)
+            .into_script();
+        script_sigs.push(script_sig);
     }
+    let tx = sighash_cache.into_transaction();
+    for i in 0..input_len {
+        tx.input[i].script_sig = script_sigs[i].clone();
+    }
+    let tx_hex = bitcoin::consensus::encode::serialize(&tx)
+        .as_hex()
+        .to_string();
+
+    tx_hex
 }
+
+#[test]
+fn test_p2tr_sign() {}
+
+#[test]
+fn test_p2pkh_sign() {}
