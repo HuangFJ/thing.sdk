@@ -1,5 +1,5 @@
 namespace thing {
-    string taproot_sign(string wallet, string priv_hex, string tx_hex, string utxos_json);
+    string p2tr_sign(u8 coin_type, string priv_hex, string tx_hex, string tx_prevouts_json);
 };
 
 interface HDWallet {

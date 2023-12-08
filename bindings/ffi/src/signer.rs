@@ -1,5 +1,6 @@
 use std::str::FromStr;
 
+use bitcoin::bip32::{Xpub, Xpriv};
 use bitcoin::hashes::hex::FromHex;
 use bitcoin::secp256k1::Secp256k1;
 use bitcoin::{
@@ -11,9 +12,10 @@ use bitcoin::{
     sighash::SighashCache,
     TxOut,
 };
-use bitcoin::{Address, Amount, Transaction};
+use bitcoin::{Address, Amount, Transaction, PublicKey, PrivateKey};
 
-pub fn taproot_sign(
+pub fn p2tr_sign(
+    coin_type: u8,
     priv_hex: String,
     tx_hex: String,
     tx_prevouts_json: String,
@@ -22,6 +24,19 @@ pub fn taproot_sign(
         deserialize::<Transaction>(&Vec::<u8>::from_hex(tx_hex.as_str()).unwrap()).unwrap();
 
     let secp = Secp256k1::new();
+    let network = match coin_type {
+        0 => bitcoin::Network::Bitcoin,
+        1 => bitcoin::Network::Testnet,
+        _ => unreachable!(),
+    };
+    let private_key = SecretKey::from_str(priv_hex.as_str()).unwrap();
+    let user_addr = Address::p2tr(
+        &secp,
+        private_key.public_key(&secp).x_only_public_key().0,
+        None,
+        network,
+    );
+
     let utxos = serde_json::from_str::<Vec<serde_json::Value>>(tx_prevouts_json.as_str())
         .unwrap()
         .iter()
@@ -29,7 +44,6 @@ pub fn taproot_sign(
             let txid = v["txid"].as_str().unwrap();
             let vout = v["vout"].as_u64().unwrap() as u32;
             let amount = v["amount"].as_f64().unwrap();
-            let script_pubkey_hex = v["scriptPubKey"]["hex"].as_str().unwrap();
             (
                 bitcoin::OutPoint {
                     txid: bitcoin::Txid::from_str(txid).unwrap(),
@@ -44,7 +58,7 @@ pub fn taproot_sign(
         .collect::<Vec<_>>();
     let txouts = utxos.into_iter().map(|(_, v)| v).collect::<Vec<TxOut>>();
     let prevouts = bitcoin::sighash::Prevouts::All(&txouts);
-    let private_key = SecretKey::from_str(priv_hex.as_str()).unwrap();
+
     let keypair = Keypair::from_secret_key(&secp, &private_key);
     let tweaked: TweakedKeypair = keypair.tap_tweak(&secp, None);
 
@@ -76,4 +90,49 @@ pub fn taproot_sign(
         .to_string();
 
     tx_hex
+}
+
+pub fn p2pkh_sign(
+    coin_type: u8,
+    priv_hex: String,
+    tx_hex: String,
+) {
+    let mut commit_tx =
+        deserialize::<Transaction>(&Vec::<u8>::from_hex(tx_hex.as_str()).unwrap()).unwrap();
+
+    let secp = Secp256k1::new();
+    let network = match coin_type {
+        0 => bitcoin::Network::Bitcoin,
+        1 => bitcoin::Network::Testnet,
+        _ => unreachable!(),
+    };
+    let private_key = SecretKey::from_str(priv_hex.as_str()).unwrap();
+    let pubkey =PublicKey::new(private_key.public_key(&secp));
+    let user_addr = Address::p2pkh(
+        &pubkey,
+        network,
+    );
+
+    let input_len = commit_tx.input.len();
+
+    let hash_ty = bitcoin::EcdsaSighashType::All;
+    let mut sighash_cache = SighashCache::new(&mut commit_tx);
+    for i in 0..input_len {
+        let sighash = sighash_cache
+        .legacy_signature_hash(i, user_addr.script_pubkey().as_script(), hash_ty.to_u32())
+            .unwrap();
+
+        let msg = Message::from_digest(sighash.to_byte_array());
+
+        let signature = bitcoin::ecdsa::Signature {
+            sig: secp.sign_ecdsa(&msg, &private_key),
+            hash_ty,
+        };
+
+        sighash_cache
+            .witness_mut(i)
+            .unwrap()
+            .push(signature.to_vec());
+            
+    }
 }
