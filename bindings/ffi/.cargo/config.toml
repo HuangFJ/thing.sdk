@@ -6,3 +6,6 @@ linker = "/Users/jon/Library/Android/sdk/ndk/24.0.8215888/toolchains/llvm/prebui
 
 [target.armv7-linux-androideabi]
 linker = "/Users/jon/Library/Android/sdk/ndk/24.0.8215888/toolchains/llvm/prebuilt/darwin-x86_64/bin/armv7a-linux-androideabi32-clang"
+
+[target.i686-linux-android]
+linker = "/Users/jon/Library/Android/sdk/ndk/24.0.8215888/toolchains/llvm/prebuilt/darwin-x86_64/bin/i686-linux-android32-clang"

@@ -2,7 +2,7 @@
 ## Prequisites
 ```shell
 brew install swiftformat ktlint
-rustup target add aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios aarch64-linux-android x86_64-linux-android armv7-linux-androideabi
+rustup target add aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios aarch64-linux-android x86_64-linux-android armv7-linux-androideabi i686-linux-android
 cargo install --path uniffi-bindgen 
 
 # specific NDK path
