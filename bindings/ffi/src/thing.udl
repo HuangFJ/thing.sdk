@@ -1,12 +1,19 @@
 namespace thing {
-    string p2tr_sign(u8 coin_type, string priv_hex, string tx_hex, string tx_prevouts_json);
-    string p2pkh_sign(u8 coin_type, string priv_hex, string tx_hex);
+    string p2tr_sign([ByRef] string address, [ByRef] string priv_hex, [ByRef] string tx_hex, sequence<Prevout> tx_prevouts);
+    string p2pkh_sign([ByRef] string address, [ByRef] string priv_hex, [ByRef] string tx_hex);
+};
+
+dictionary Prevout {
+    string txid;
+    u32 vout;
+    f64 amount;
 };
 
 interface HDWallet {
-    constructor(u8 coin_type, string seed_hex);
+    constructor(u8 is_testnet, string? mnemonic_str);
     [Name=from_master_priv]
-    constructor(string master_priv);
+    constructor([ByRef] string master_priv);
+    string export_mnemonic();
     string export_master_priv();
     string bip44_address();
     string bip86_address();

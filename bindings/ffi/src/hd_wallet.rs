@@ -1,34 +1,56 @@
-use std::str::FromStr;
+use bip39::Mnemonic;
 use bitcoin::bip32::{DerivationPath, Xpriv, Xpub};
-use bitcoin::hashes::hex::FromHex;
 use bitcoin::hex::DisplayHex;
 use bitcoin::secp256k1::{All, Secp256k1};
 use bitcoin::{Address, PublicKey};
+use std::str::FromStr;
 
 pub struct HDWallet {
-    root: Xpriv,
     secp: Secp256k1<All>,
+    mnemonic: Option<Mnemonic>,
+    root: Xpriv,
 }
 
 impl HDWallet {
-    pub fn new(coin_type: u8, seed_hex: String) -> Self {
-        let network = match coin_type {
+    pub fn new(is_testnet: u8, mnemonic_str: Option<String>) -> Self {
+        let mnemonic = match mnemonic_str {
+            Some(m) => Mnemonic::from_str(m.as_str()).unwrap(),
+            None => Mnemonic::generate(12).unwrap(),
+        };
+
+        let network = match is_testnet {
             0 => bitcoin::Network::Bitcoin,
             1 => bitcoin::Network::Testnet,
             _ => unreachable!(),
         };
-        let seed = Vec::from_hex(seed_hex.as_str()).unwrap();
+
+        let seed = mnemonic.to_seed("");
         let root = Xpriv::new_master(network, &seed).unwrap();
 
         let secp = Secp256k1::new();
 
-        Self { root, secp }
+        Self {
+            secp,
+            mnemonic: Some(mnemonic),
+            root,
+        }
     }
 
-    pub fn from_master_priv(master_priv: String) -> Self {
-        let root = Xpriv::from_str(master_priv.as_str()).unwrap();
+    pub fn from_master_priv(master_priv: &str) -> Self {
+        let root = Xpriv::from_str(master_priv).unwrap();
         let secp = Secp256k1::new();
-        Self { root, secp }
+        Self {
+            secp,
+            mnemonic: None,
+            root,
+        }
+    }
+
+    pub fn export_mnemonic(&self) -> String {
+        let Some(m) = &self.mnemonic else {
+            return String::new();
+        };
+        m.to_string()
     }
 
     pub fn export_master_priv(&self) -> String {

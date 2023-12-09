@@ -24,35 +24,12 @@ It will generate the following files:
 ### Add generated headers and xcframework to the project
 Open the Xcode project in the `projects/ios` folder. Add the `headers/thingFFI.*`, `Sources/thing.swift` and `thing.xcframework` files to the responding folders in the Xcode project.
 
-### Back to the code
-```swift
-let wallet = HdWallet.init(coinType: 0, seedHex: "92ff6cd1fc51db4fd09d4204750c3e72a117488ce893d08811833ecca502e333d149ead97d80f7cb5f347ba9cf5cecb4745cd7dcd4c6dd8d528997086f445a3c")
-let masterPriv = wallet.exportMasterPriv()
-let wallet = HdWallet.fromMasterPriv(masterPriv: masterPriv)
-wallet.bip44Address()
-wallet.bip86Address()
-// sign a p2pkh tx
-p2pkhSign(coinType: 0, privHex: "", txHex: "")
-// sign a p2tr tx
-p2trSign(coinType: 0, privHex: "", txHex: "", txPrevoutsJson: "[]")
-```
 
 ## Android
 It will generate the following files:
+- `projects/android/app/src/main/java/uniffi/thing/thing.kt` - Kotlin wrapper
 - `projects/android/app/src/main/jniLibs/x86_64/libuniffi_thing.so` - Android x86_64 shared library
 - `projects/android/app/src/main/jniLibs/arm64-v8a/libuniffi_thing.so` - Android arm64-v8a shared library
 - `projects/android/app/src/main/jniLibs/armeabi-v7a/libuniffi_thing.so` - Android armeabi-v7a shared library
 
-### Back to Android Studio
-Open the Android Studio project in the `projects/android` folder. Change the code:
-```kotlin
-val wallet = HdWallet(0u, "92ff6cd1fc51db4fd09d4204750c3e72a117488ce893d08811833ecca502e333d149ead97d80f7cb5f347ba9cf5cecb4745cd7dcd4c6dd8d528997086f445a3c")
-val masterPriv = wallet.exportMasterPriv()
-val wallet = HdWallet.fromMasterPriv(masterPriv)
-wallet.bip44Address()
-wallet.bip86Address()
-// sign a p2pkh tx
-p2pkhSign(0u, "", "")
-// sign a p2tr tx
-p2trSign(0u, "", "", "[]")
-```
+Open the Android Studio project in the `projects/android` folder. Add `implementation "net.java.dev.jna:jna:5.13.0@aar"` to dependencies of the app build.gradle.

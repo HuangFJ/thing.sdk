@@ -1,36 +1,45 @@
 use std::str::FromStr;
 
 use crate::hd_wallet::HDWallet;
-use crate::signer::{p2tr_sign, p2pkh_sign};
-use bitcoin::*;
+use crate::signer::{p2pkh_sign, p2tr_sign, Prevout};
 use bitcoin::hex::DisplayHex;
 use bitcoin::script::ScriptBuf;
+use bitcoin::*;
 use reqwest::Client;
 use serde_json::json;
 
-
 #[test]
-fn test_hd_wallet(){
-    let wallet3 = HDWallet::new(1, "e9bc5fd1c14cbe5449e250596b4ffe655f84d9b8175d36c18a6b54d421aad2561cc7558aca1584034c460d2f66f7865395b7c86f24632157bb8f20737014ae6a".to_string());
-    println!("{}", wallet3.bip44_priv_hex());
-    println!("{}", wallet3.bip44_address());
+fn test_hd_wallet() {
+    let wallet3 = HDWallet::new(
+        1,
+        Some("visit frame clay clap often dance pair cousin peanut thumb fine foster".to_string()),
+    );
+    assert_eq!(
+        wallet3.export_mnemonic(),
+        "visit frame clay clap often dance pair cousin peanut thumb fine foster"
+    );
+    assert_eq!(wallet3.export_master_priv() , "tprv8ZgxMBicQKsPdnUc4gyKBXrrp8Nq6gSSRV1yr3Rg6bsC4M1b19WFiAsD1b6ANibyTGVSY6D7JSYyhrv27EfvPMq99LQ847BbYK1uLf8wPpu");
+    assert_eq!(
+        wallet3.bip44_priv_hex(),
+        "6cd9dc64451b6652203df996e255859aa9eefac8e99b9143510fafe5cae27822"
+    );
+    assert_eq!(
+        wallet3.bip44_address(),
+        "mzn7vdLThH2RRknmEMGZ8QB7tEQkmDaCWF"
+    );
 }
 
 #[tokio::test]
 async fn test_p2tr_sign() {
     const BTC_RPC_URL: &str = "http://127.0.0.1:18332";
-    const COIN_TYPE: u8 = 1;
-    // [{"txid":"eaa5b43552c0fcde1a1126b7c6fb45089cba0377cbf1f1eeedc63d8b5adc4bfd","vout":0,"amount":0.0001}]
+    // from
+    const ADDRESS: &str = "tb1pakgwynt8cvc6wqeac3zxc3cpgkgcwdwyfehunlafyckcukq0h24q4p2kxa";
+    const PRIV_HEX: &str = "6cd9dc64451b6652203df996e255859aa9eefac8e99b9143510fafe5cae27822";
     const INPUT_TXID: &str = "eaa5b43552c0fcde1a1126b7c6fb45089cba0377cbf1f1eeedc63d8b5adc4bfd";
     const INPUT_VOUT: u32 = 0;
     const INPUT_VALUE: f64 = 0.0001;
-
-    // tb1pakgwynt8cvc6wqeac3zxc3cpgkgcwdwyfehunlafyckcukq0h24q4p2kxa
-    let priv_hex = "6cd9dc64451b6652203df996e255859aa9eefac8e99b9143510fafe5cae27822".to_string();
-
-    let wallet = HDWallet::new(COIN_TYPE, "e9bc5fd1c14cbe5449e250596b4ffe655f84d9b8175d36c18a6b54d421aad2561cc7558aca1584034c460d2f66f7865395b7c86f24632157bb8f20737014ae6a".to_string());
-    // mzn7vdLThH2RRknmEMGZ8QB7tEQkmDaCWF
-    let recipient = wallet.bip44_address();
+    // to
+    const RECIPIENT: &str = "mzn7vdLThH2RRknmEMGZ8QB7tEQkmDaCWF";
 
     let input = TxIn {
         previous_output: OutPoint {
@@ -42,13 +51,11 @@ async fn test_p2tr_sign() {
         witness: Witness::new(),
     };
 
-    let prevouts = json!([
-        {
-            "txid": INPUT_TXID,
-            "vout": INPUT_VOUT,
-            "amount": INPUT_VALUE
-        }
-    ]);
+    let prevouts = vec![Prevout {
+        txid: INPUT_TXID.to_string(),
+        vout: INPUT_VOUT,
+        amount: INPUT_VALUE,
+    }];
 
     let tx = Transaction {
         version: transaction::Version::ONE,  // Post BIP-68.
@@ -59,7 +66,7 @@ async fn test_p2tr_sign() {
                 .unwrap()
                 .checked_sub(Amount::from_sat(102))
                 .unwrap(),
-            script_pubkey: Address::from_str(&recipient)
+            script_pubkey: Address::from_str(RECIPIENT)
                 .unwrap()
                 .assume_checked()
                 .script_pubkey(),
@@ -67,10 +74,10 @@ async fn test_p2tr_sign() {
     };
 
     let tx_hex = p2tr_sign(
-        COIN_TYPE,
-        priv_hex,
-        consensus::serialize(&tx).as_hex().to_string(),
-        serde_json::to_string(&prevouts).unwrap(),
+        ADDRESS,
+        PRIV_HEX,
+        consensus::serialize(&tx).as_hex().to_string().as_str(),
+        prevouts,
     );
 
     let client = Client::new();
@@ -94,17 +101,12 @@ async fn test_p2tr_sign() {
 #[tokio::test]
 async fn test_p2pkh_sign() {
     const BTC_RPC_URL: &str = "http://127.0.0.1:18332";
-    const COIN_TYPE: u8 = 1;
-    const SEED_HEX: &str = "e9bc5fd1c14cbe5449e250596b4ffe655f84d9b8175d36c18a6b54d421aad2561cc7558aca1584034c460d2f66f7865395b7c86f24632157bb8f20737014ae6a";
+    // from and to
+    const ADDRESS: &str = "mzn7vdLThH2RRknmEMGZ8QB7tEQkmDaCWF";
+    const PRIV_HEX: &str = "6cd9dc64451b6652203df996e255859aa9eefac8e99b9143510fafe5cae27822";
     const INPUT_TXID: &str = "3d1e955111f97c58a64d71215fb58de4a12eaea7b8f4fe95d771f35b708b0974";
     const INPUT_VOUT: u32 = 0;
     const INPUT_VALUE: f64 = 0.00009898;
-
-    let wallet = HDWallet::new(COIN_TYPE, SEED_HEX.to_string());
-    // 6cd9dc64451b6652203df996e255859aa9eefac8e99b9143510fafe5cae27822
-    let priv_hex = wallet.bip44_priv_hex();
-    // mzn7vdLThH2RRknmEMGZ8QB7tEQkmDaCWF
-    let addr = wallet.bip44_address();
 
     let input = TxIn {
         previous_output: OutPoint {
@@ -125,7 +127,7 @@ async fn test_p2pkh_sign() {
                 .unwrap()
                 .checked_sub(Amount::from_sat(192))
                 .unwrap(),
-            script_pubkey: Address::from_str(&addr)
+            script_pubkey: Address::from_str(ADDRESS)
                 .unwrap()
                 .assume_checked()
                 .script_pubkey(),
@@ -133,9 +135,9 @@ async fn test_p2pkh_sign() {
     };
 
     let tx_hex = p2pkh_sign(
-        COIN_TYPE,
-        priv_hex,
-        consensus::serialize(&tx).as_hex().to_string(),
+        ADDRESS,
+        PRIV_HEX,
+        consensus::serialize(&tx).as_hex().to_string().as_str(),
     );
 
     let client = Client::new();
@@ -155,4 +157,3 @@ async fn test_p2pkh_sign() {
         .unwrap();
     println!("broadcast tx: {:?}", res);
 }
-

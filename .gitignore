@@ -4,5 +4,6 @@
 /projects/ios/Sources/thing.swift
 /projects/ios/thing.xcframework
 /projects/ios/libthing.a
+/projects/android/app/src/main/java/uniffi/thing/thing.kt
 /projects/android/app/src/main/jniLibs
 .DS_Store

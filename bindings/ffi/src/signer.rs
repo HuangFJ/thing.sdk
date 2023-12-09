@@ -7,15 +7,21 @@ use bitcoin::{
     script,
     secp256k1::{Keypair, Message, Secp256k1, SecretKey},
     sighash::{Prevouts, SighashCache},
-    taproot, Address, Amount, EcdsaSighashType, Network, OutPoint, PublicKey, TapSighashType,
+    taproot, Address, Amount, EcdsaSighashType, OutPoint, PublicKey, TapSighashType,
     Transaction, TxOut, Txid,
 };
 use std::str::FromStr;
 
+pub struct Prevout {
+    pub txid: String,
+    pub vout: u32,
+    pub amount: f64,
+}
+
 /// ### Sign a tx with p2tr address
 ///
-/// coin_type:
-/// 0 for mainnet, 1 for testnet
+/// address:
+/// bip86 address
 ///
 /// priv_hex:
 /// private key in hex, the tx inputs are locked by the p2tr address of this private key
@@ -26,36 +32,34 @@ use std::str::FromStr;
 /// tx_prevouts_json:
 /// responding prevouts of tx inputs like [{"txid": "xxx", "vout": 0, "amount": 0.0001}, ...]
 pub fn p2tr_sign(
-    coin_type: u8,
-    priv_hex: String,
-    tx_hex: String,
-    tx_prevouts_json: String,
+    address: &str,
+    priv_hex: &str,
+    tx_hex: &str,
+    tx_prevouts: Vec<Prevout>,
 ) -> String {
     let mut unsigned_tx =
-        consensus::deserialize::<Transaction>(&Vec::<u8>::from_hex(tx_hex.as_str()).unwrap())
+        consensus::deserialize::<Transaction>(&Vec::<u8>::from_hex(tx_hex).unwrap())
             .unwrap();
 
     let secp = Secp256k1::new();
-    let network = match coin_type {
-        0 => Network::Bitcoin,
-        1 => Network::Testnet,
-        _ => unreachable!(),
-    };
-    let private_key = SecretKey::from_str(priv_hex.as_str()).unwrap();
-    let user_addr = Address::p2tr(
+    let address = Address::from_str(address).unwrap().assume_checked();
+    let network = address.network().clone();
+    let private_key = SecretKey::from_str(priv_hex).unwrap();
+    let private_addr = Address::p2tr(
         &secp,
         private_key.public_key(&secp).x_only_public_key().0,
         None,
         network,
     );
 
-    let utxos = serde_json::from_str::<Vec<serde_json::Value>>(tx_prevouts_json.as_str())
-        .unwrap()
+    assert_eq!(address, private_addr);
+
+    let utxos = tx_prevouts
         .iter()
         .map(|v| {
-            let txid = v["txid"].as_str().unwrap();
-            let vout = v["vout"].as_u64().unwrap() as u32;
-            let amount = v["amount"].as_f64().unwrap();
+            let txid = &v.txid;
+            let vout = v.vout;
+            let amount = v.amount;
             (
                 OutPoint {
                     txid: Txid::from_str(txid).unwrap(),
@@ -63,7 +67,7 @@ pub fn p2tr_sign(
                 },
                 TxOut {
                     value: Amount::from_btc(amount).unwrap(),
-                    script_pubkey: user_addr.script_pubkey(),
+                    script_pubkey: private_addr.script_pubkey(),
                 },
             )
         })
@@ -104,28 +108,27 @@ pub fn p2tr_sign(
 
 /// ### Sign a tx with p2pkh address
 ///
-/// coin_type:
-/// 0 for mainnet, 1 for testnet
+/// address:
+/// bip44 address
 ///
 /// priv_hex:
 /// private key in hex, the tx inputs are locked by the p2pkh address of this private key
 ///
 /// tx_hex:
 /// unsigned transaction in hex
-pub fn p2pkh_sign(coin_type: u8, priv_hex: String, tx_hex: String) -> String {
+pub fn p2pkh_sign(address: &str, priv_hex: &str, tx_hex: &str) -> String {
     let mut unsigned_tx =
-        consensus::deserialize::<Transaction>(&Vec::<u8>::from_hex(tx_hex.as_str()).unwrap())
+        consensus::deserialize::<Transaction>(&Vec::<u8>::from_hex(tx_hex).unwrap())
             .unwrap();
 
     let secp = Secp256k1::new();
-    let network = match coin_type {
-        0 => Network::Bitcoin,
-        1 => Network::Testnet,
-        _ => unreachable!(),
-    };
-    let private_key = SecretKey::from_str(priv_hex.as_str()).unwrap();
+    let address = Address::from_str(address).unwrap().assume_checked();
+    let network = address.network().clone();
+    let private_key = SecretKey::from_str(priv_hex).unwrap();
     let pubkey = PublicKey::new(private_key.public_key(&secp));
-    let user_addr = Address::p2pkh(&pubkey, network);
+    let private_addr = Address::p2pkh(&pubkey, network);
+
+    assert_eq!(address, private_addr);
 
     let input_len = unsigned_tx.input.len();
 
@@ -134,7 +137,7 @@ pub fn p2pkh_sign(coin_type: u8, priv_hex: String, tx_hex: String) -> String {
     let mut script_sigs = Vec::new();
     for i in 0..input_len {
         let sighash = sighash_cache
-            .legacy_signature_hash(i, user_addr.script_pubkey().as_script(), hash_ty.to_u32())
+            .legacy_signature_hash(i, private_addr.script_pubkey().as_script(), hash_ty.to_u32())
             .unwrap();
 
         let msg = Message::from_digest(sighash.to_byte_array());

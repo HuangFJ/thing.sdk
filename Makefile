@@ -10,7 +10,16 @@ ANDROID_TARGET_LIB := libuniffi_$(FFI_NAMESPACE).so
 
 export PATH := ${NDK_TOOLCHAINS_PATH}:${PATH}
 
-all: ios android-aarch64 android-x86_64 armv7-linux-androideabi android-i686
+all: ios android-aarch64 android-x86_64 armv7-linux-androideabi android-i686 android
+
+android:
+	cd bindings/ffi && \
+	mkdir -p $(ANDROID_PROJECT)/app/src/main/java && \
+	uniffi-bindgen \
+		generate src/thing.udl \
+		--language kotlin \
+		--config uniffi.toml \
+		--out-dir $(ANDROID_PROJECT)/app/src/main/java
 
 ios: 
 	cd bindings/ffi && \
