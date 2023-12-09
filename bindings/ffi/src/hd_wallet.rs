@@ -4,11 +4,34 @@ use bitcoin::hex::DisplayHex;
 use bitcoin::secp256k1::{All, Secp256k1};
 use bitcoin::{Address, PublicKey};
 use std::str::FromStr;
+use tiny_keccak::{Hasher, Keccak};
 
 pub struct HDWallet {
     secp: Secp256k1<All>,
     mnemonic: Option<Mnemonic>,
     root: Xpriv,
+}
+
+fn checksum_address(address: &str) -> String {
+    let mut output = [0u8; 32];
+
+    let mut hasher = Keccak::v256();
+    hasher.update(address.as_bytes());
+    hasher.finalize(&mut output);
+
+    let digest = output.as_hex().to_string();
+    let mut new_address = String::new();
+    for (c, digest_char) in address.chars().zip(digest.chars()) {
+        new_address.push(
+            if u8::from_str_radix(digest_char.to_string().as_str(), 16).unwrap() >= 8 {
+                c.to_ascii_uppercase()
+            } else {
+                c
+            },
+        );
+    }
+
+    new_address
 }
 
 impl HDWallet {
@@ -57,6 +80,27 @@ impl HDWallet {
         self.root.to_string()
     }
 
+    pub fn evm_address(&self) -> String {
+        let extended_prikey = self.evm_xpriv();
+        let pubkey_bytes = extended_prikey
+            .to_keypair(&self.secp)
+            .public_key()
+            .serialize_uncompressed();
+
+        let mut output = [0u8; 32];
+
+        let mut hasher = Keccak::v256();
+        hasher.update(&pubkey_bytes[1..]);
+        hasher.finalize(&mut output);
+
+        format!("0x{}", checksum_address(&output[12..].as_hex().to_string()))
+    }
+
+    fn evm_xpriv(&self) -> Xpriv {
+        let path = DerivationPath::from_str(&format!("m/44'/60'/0'/0/0")).unwrap();
+        self.root.derive_priv(&self.secp, &path).unwrap()
+    }
+
     pub fn bip44_address(&self) -> String {
         let extended_prikey = self.bip44_xpriv();
 
@@ -101,6 +145,14 @@ impl HDWallet {
 
         let path = DerivationPath::from_str(&format!("m/86'/{coin_type}/0'/0/0")).unwrap();
         self.root.derive_priv(&self.secp, &path).unwrap()
+    }
+
+    pub fn evm_priv_hex(&self) -> String {
+        self.evm_xpriv()
+            .private_key
+            .secret_bytes()
+            .as_hex()
+            .to_string()
     }
 
     pub fn bip44_priv_hex(&self) -> String {

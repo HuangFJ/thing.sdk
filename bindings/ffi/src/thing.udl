@@ -15,8 +15,10 @@ interface HDWallet {
     constructor([ByRef] string master_priv);
     string export_mnemonic();
     string export_master_priv();
+    string evm_address();
     string bip44_address();
     string bip86_address();
+    string evm_priv_hex();
     string bip44_priv_hex();
     string bip86_priv_hex();
 };

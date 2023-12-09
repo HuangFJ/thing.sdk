@@ -13,6 +13,7 @@ uniffi = "0.25"
 uniffi_macros = "0.25"
 bitcoin = { version = "0.31", features = ["rand-std"] }
 bip39 = { version = "2.0", features = ["rand"] }
+tiny-keccak = { version = "2.0", features = ["keccak"] }
 
 [build-dependencies]
 uniffi_build = { version = "0.25", features = ["builtin-bindgen"] }

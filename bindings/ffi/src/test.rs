@@ -29,6 +29,23 @@ fn test_hd_wallet() {
     );
 }
 
+#[test]
+fn test_evm() {
+    let wallet = HDWallet::new(
+        0,
+        Some(
+            "work man father plunge mystery proud hollow address reunion sauce theory bonus"
+                .to_string(),
+        ),
+    );
+
+    println!("private key: {}", wallet.evm_priv_hex());
+    assert_eq!(
+        wallet.evm_address(),
+        "0xffDb339065c91c88e8a3cC6857359B6c2FB78cf5"
+    );
+}
+
 #[tokio::test]
 async fn test_p2tr_sign() {
     const BTC_RPC_URL: &str = "http://127.0.0.1:18332";
