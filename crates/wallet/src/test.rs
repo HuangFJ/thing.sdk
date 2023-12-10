@@ -1,12 +1,30 @@
 use std::str::FromStr;
 
 use crate::hd_wallet::HDWallet;
-use crate::signer::{p2pkh_sign, p2tr_sign, Prevout};
+use crate::signer::{ecdsa_sign, p2pkh_sign, p2tr_sign, Prevout};
+use bitcoin::hashes::sha256;
 use bitcoin::hex::DisplayHex;
 use bitcoin::script::ScriptBuf;
+use bitcoin::secp256k1::ecdsa::Signature;
+use bitcoin::secp256k1::{Message, Secp256k1, SecretKey};
 use bitcoin::*;
 use reqwest::Client;
 use serde_json::json;
+
+#[test]
+fn test_ecdsa_sign() {
+    let message = "hello world";
+    let priv_hex = "6cd9dc64451b6652203df996e255859aa9eefac8e99b9143510fafe5cae27822";
+    let sig = ecdsa_sign(priv_hex, message);
+
+    let signature = Signature::from_str(sig.as_str()).unwrap();
+    let secp = Secp256k1::new();
+    let private_key = SecretKey::from_str(priv_hex).unwrap();
+    let msg = Message::from_hashed_data::<sha256::Hash>(message.as_bytes());
+    assert!(secp
+        .verify_ecdsa(&msg, &signature, &private_key.public_key(&secp))
+        .is_ok());
+}
 
 #[test]
 fn test_hd_wallet() {

@@ -8,6 +8,11 @@ pub struct Prevout {
 }
 
 #[wasm_bindgen]
+pub fn ecdsa_sign(priv_hex: &str, message: &str) -> String {
+    signer::ecdsa_sign(priv_hex, message)
+}
+
+#[wasm_bindgen]
 pub fn p2pkh_sign(address: &str, priv_hex: &str, tx_hex: &str) -> String {
     signer::p2pkh_sign(address, priv_hex, tx_hex)
 }

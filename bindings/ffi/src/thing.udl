@@ -1,4 +1,5 @@
 namespace thing {
+    string ecdsa_sign([ByRef] string priv_hex, [ByRef] string message);
     string p2tr_sign([ByRef] string address, [ByRef] string priv_hex, [ByRef] string tx_hex, sequence<Prevout> tx_prevouts);
     string p2pkh_sign([ByRef] string address, [ByRef] string priv_hex, [ByRef] string tx_hex);
 };

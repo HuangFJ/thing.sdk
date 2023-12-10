@@ -1,14 +1,14 @@
 use bitcoin::{
     consensus, ecdsa,
-    hashes::hex::FromHex,
     hashes::Hash,
+    hashes::{hex::FromHex, sha256},
     hex::DisplayHex,
     key::{TapTweak, TweakedKeypair},
     script,
     secp256k1::{Keypair, Message, Secp256k1, SecretKey},
     sighash::{Prevouts, SighashCache},
-    taproot, Address, Amount, EcdsaSighashType, OutPoint, PublicKey, TapSighashType,
-    Transaction, TxOut, Txid,
+    taproot, Address, Amount, EcdsaSighashType, OutPoint, PublicKey, TapSighashType, Transaction,
+    TxOut, Txid,
 };
 use std::str::FromStr;
 
@@ -31,15 +31,9 @@ pub struct Prevout {
 ///
 /// tx_prevouts_json:
 /// responding prevouts of tx inputs like [{"txid": "xxx", "vout": 0, "amount": 0.0001}, ...]
-pub fn p2tr_sign(
-    address: &str,
-    priv_hex: &str,
-    tx_hex: &str,
-    tx_prevouts: Vec<Prevout>,
-) -> String {
+pub fn p2tr_sign(address: &str, priv_hex: &str, tx_hex: &str, tx_prevouts: Vec<Prevout>) -> String {
     let mut unsigned_tx =
-        consensus::deserialize::<Transaction>(&Vec::<u8>::from_hex(tx_hex).unwrap())
-            .unwrap();
+        consensus::deserialize::<Transaction>(&Vec::<u8>::from_hex(tx_hex).unwrap()).unwrap();
 
     let secp = Secp256k1::new();
     let address = Address::from_str(address).unwrap().assume_checked();
@@ -118,8 +112,7 @@ pub fn p2tr_sign(
 /// unsigned transaction in hex
 pub fn p2pkh_sign(address: &str, priv_hex: &str, tx_hex: &str) -> String {
     let mut unsigned_tx =
-        consensus::deserialize::<Transaction>(&Vec::<u8>::from_hex(tx_hex).unwrap())
-            .unwrap();
+        consensus::deserialize::<Transaction>(&Vec::<u8>::from_hex(tx_hex).unwrap()).unwrap();
 
     let secp = Secp256k1::new();
     let address = Address::from_str(address).unwrap().assume_checked();
@@ -137,7 +130,11 @@ pub fn p2pkh_sign(address: &str, priv_hex: &str, tx_hex: &str) -> String {
     let mut script_sigs = Vec::new();
     for i in 0..input_len {
         let sighash = sighash_cache
-            .legacy_signature_hash(i, private_addr.script_pubkey().as_script(), hash_ty.to_u32())
+            .legacy_signature_hash(
+                i,
+                private_addr.script_pubkey().as_script(),
+                hash_ty.to_u32(),
+            )
             .unwrap();
 
         let msg = Message::from_digest(sighash.to_byte_array());
@@ -164,4 +161,14 @@ pub fn p2pkh_sign(address: &str, priv_hex: &str, tx_hex: &str) -> String {
     let tx_hex = consensus::serialize(&tx).as_hex().to_string();
 
     tx_hex
+}
+
+pub fn ecdsa_sign(priv_hex: &str, message: &str) -> String {
+    let secp = Secp256k1::new();
+    let msg = Message::from_hashed_data::<sha256::Hash>(message.as_bytes());
+    let private_key = SecretKey::from_str(priv_hex).unwrap();
+    secp.sign_ecdsa(&msg, &private_key)
+        .serialize_der()
+        .as_hex()
+        .to_string()
 }
