@@ -11,15 +11,7 @@ crate-type = ["cdylib", "staticlib"]
 [dependencies]
 uniffi = "0.25"
 uniffi_macros = "0.25"
-bitcoin = { version = "0.31", features = ["rand-std"] }
-bip39 = { version = "2.0", features = ["rand"] }
-tiny-keccak = { version = "2.0", features = ["keccak"] }
+wallet = { path = "../../crates/wallet" }
 
 [build-dependencies]
 uniffi_build = { version = "0.25", features = ["builtin-bindgen"] }
-
-[dev-dependencies]
-reqwest = { version = "0.11", features = ["json"] }
-tokio = { version = "1", features = ["full"] }
-tokio-test = "0.4"
-serde_json = "1.0"

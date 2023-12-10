@@ -13,11 +13,7 @@ pub struct HDWallet {
 }
 
 fn checksum_address(address: &str) -> String {
-    let mut output = [0u8; 32];
-
-    let mut hasher = Keccak::v256();
-    hasher.update(address.as_bytes());
-    hasher.finalize(&mut output);
+    let output = keccak256(address.as_bytes());
 
     let digest = output.as_hex().to_string();
     let mut new_address = String::new();
@@ -32,6 +28,16 @@ fn checksum_address(address: &str) -> String {
     }
 
     new_address
+}
+
+fn keccak256(data: &[u8]) -> [u8; 32] {
+    let mut output = [0u8; 32];
+
+    let mut hasher = Keccak::v256();
+    hasher.update(data);
+    hasher.finalize(&mut output);
+
+    output
 }
 
 impl HDWallet {
@@ -87,11 +93,7 @@ impl HDWallet {
             .public_key()
             .serialize_uncompressed();
 
-        let mut output = [0u8; 32];
-
-        let mut hasher = Keccak::v256();
-        hasher.update(&pubkey_bytes[1..]);
-        hasher.finalize(&mut output);
+        let output = keccak256(&pubkey_bytes[1..]);
 
         format!("0x{}", checksum_address(&output[12..].as_hex().to_string()))
     }
