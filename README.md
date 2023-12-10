@@ -33,3 +33,13 @@ It will generate the following files:
 - `projects/android/app/src/main/jniLibs/armeabi-v7a/libuniffi_thing.so` - Android armeabi-v7a shared library
 
 Open the Android Studio project in the `projects/android` folder. Add `implementation "net.java.dev.jna:jna:5.13.0@aar"` to dependencies of the app build.gradle.
+
+
+## Web
+It will generate the following files:
+- `projects/web/pkg/thing.js` - JavaScript wrapper
+- `projects/web/pkg/thing_bg.wasm` - WebAssembly binary
+- `projects/web/pkg/thing.d.ts` - TypeScript definition
+- `projects/web/pkg/thing_bg.wasm.d.ts` - TypeScript definition
+
+Go to the `projects/web` folder, and run `python3 -m http.server` to start a web server. Open `http://localhost:8000` in a browser to see the demo.

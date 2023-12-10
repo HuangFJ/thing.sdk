@@ -1,7 +1,7 @@
 FFI_NAMESPACE := thing
 NDK_TOOLCHAINS_PATH ?= /Users/jon/Library/Android/sdk/ndk/24.0.8215888/toolchains/llvm/prebuilt/darwin-x86_64/bin
-CC ?= /usr/local/opt/llvm/bin/clang
-AR ?= /usr/local/opt/llvm/bin/llvm-ar
+CC := /usr/local/opt/llvm/bin/clang
+AR := /usr/local/opt/llvm/bin/llvm-ar
 
 IOS_PROJECT := ../../projects/ios
 ANDROID_PROJECT := ../../projects/android
@@ -13,7 +13,7 @@ ANDROID_TARGET_LIB := libuniffi_$(FFI_NAMESPACE).so
 
 export PATH := ${NDK_TOOLCHAINS_PATH}:${PATH}
 
-all: ios android-aarch64 android-x86_64 armv7-linux-androideabi android-i686 android
+all: ios android-aarch64 android-x86_64 armv7-linux-androideabi android-i686 android web
 
 web:
 	cd bindings/wasm && \

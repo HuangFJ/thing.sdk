@@ -1,5 +1,29 @@
-use wasm_bindgen::prelude::*;
 use wallet::hd_wallet;
+use wallet::signer;
+use wasm_bindgen::prelude::*;
+
+#[wasm_bindgen]
+pub struct Prevout {
+    inner: signer::Prevout,
+}
+
+#[wasm_bindgen]
+pub fn p2pkh_sign(address: &str, priv_hex: &str, tx_hex: &str) -> String {
+    signer::p2pkh_sign(address, priv_hex, tx_hex)
+}
+
+#[wasm_bindgen]
+pub fn p2tr_sign(address: &str, priv_hex: &str, tx_hex: &str, tx_prevouts: Vec<Prevout>) -> String {
+    signer::p2tr_sign(
+        address,
+        priv_hex,
+        tx_hex,
+        tx_prevouts
+            .into_iter()
+            .map(|prevout| prevout.inner)
+            .collect(),
+    )
+}
 
 #[wasm_bindgen]
 pub struct HDWallet {
@@ -33,14 +57,23 @@ impl HDWallet {
         self.inner.evm_address()
     }
 
+    pub fn bip44_address(&self) -> String {
+        self.inner.bip44_address()
+    }
+
+    pub fn bip86_address(&self) -> String {
+        self.inner.bip86_address()
+    }
+
     pub fn evm_priv_hex(&self) -> String {
         self.inner.evm_priv_hex()
     }
 
-    pub fn bip44_address(&self) -> String {
-        self.inner.bip44_address()
-    }
     pub fn bip44_priv_hex(&self) -> String {
         self.inner.bip44_priv_hex()
+    }
+
+    pub fn bip86_priv_hex(&self) -> String {
+        self.inner.bip86_priv_hex()
     }
 }

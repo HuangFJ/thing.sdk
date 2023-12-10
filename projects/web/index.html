@@ -6,14 +6,15 @@
 </head>
 
 <body>
+    <div id="label"></div>
     <script type="module">
-        import init, { create_myclass }
+        import init, { HDWallet }
             from './pkg/thing.js';
 
         async function run() {
             await init();
-            const m = create_myclass();
-            document.getElementById("pid").innerText = m.my_method();
+            const wallet = new HDWallet();
+            document.getElementById("label").innerText = wallet.export_mnemonic();
         }
 
         run();

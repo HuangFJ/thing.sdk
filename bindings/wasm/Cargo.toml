@@ -12,6 +12,7 @@ wasm-opt = ['-Oz']
 crate-type = ["cdylib"]
 
 [dependencies]
+getrandom = { version = "0.2.11", features = ["js"] }
 secp256k1-sys = "0.9.1"
 wasm-bindgen = "0.2.80"
 wasm-bindgen-futures = "0.4.30"
