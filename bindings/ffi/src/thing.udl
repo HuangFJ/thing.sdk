@@ -1,6 +1,6 @@
 namespace thing {
-    string schnorr_sign([ByRef] string tweaked_priv_hex, [ByRef] string message);
-    string ecdsa_sign([ByRef] string priv_hex, [ByRef] string message);
+    string schnorr_sign([ByRef] string tweaked_priv_hex, [ByRef] string digest_hex);
+    string ecdsa_sign([ByRef] string priv_hex, [ByRef] string digest_hex);
     string p2tr_sign([ByRef] string address, [ByRef] string priv_hex, [ByRef] string tx_hex, sequence<Prevout> tx_prevouts);
     string p2pkh_sign([ByRef] string address, [ByRef] string priv_hex, [ByRef] string tx_hex);
 };

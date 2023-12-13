@@ -1,7 +1,7 @@
 use bitcoin::{
     consensus, ecdsa,
+    hashes::hex::FromHex,
     hashes::Hash,
-    hashes::{hex::FromHex, sha256},
     hex::DisplayHex,
     key::{TapTweak, TweakedKeypair},
     script,
@@ -163,9 +163,10 @@ pub fn p2pkh_sign(address: &str, priv_hex: &str, tx_hex: &str) -> String {
     tx_hex
 }
 
-pub fn ecdsa_sign(priv_hex: &str, message: &str) -> String {
+pub fn ecdsa_sign(priv_hex: &str, digest_hex: &str) -> String {
     let secp = Secp256k1::new();
-    let msg = Message::from_hashed_data::<sha256::Hash>(message.as_bytes());
+    let digest = Vec::<u8>::from_hex(digest_hex).unwrap();
+    let msg = Message::from_digest_slice(&digest).unwrap();
     let private_key = SecretKey::from_str(priv_hex).unwrap();
     secp.sign_ecdsa(&msg, &private_key)
         .serialize_der()
@@ -173,9 +174,10 @@ pub fn ecdsa_sign(priv_hex: &str, message: &str) -> String {
         .to_string()
 }
 
-pub fn schnorr_sign(tweaked_priv_hex: &str, message: &str) -> String {
+pub fn schnorr_sign(tweaked_priv_hex: &str, digest_hex: &str) -> String {
     let secp = Secp256k1::new();
-    let msg = Message::from_hashed_data::<sha256::Hash>(message.as_bytes());
+    let digest = Vec::<u8>::from_hex(digest_hex).unwrap();
+    let msg = Message::from_digest_slice(&digest).unwrap();
     let keypair = Keypair::from_seckey_str(&secp, tweaked_priv_hex).unwrap();
     secp.sign_schnorr(&msg, &keypair)
         .serialize()

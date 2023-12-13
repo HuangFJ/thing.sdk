@@ -8,13 +8,13 @@ pub struct Prevout {
 }
 
 #[wasm_bindgen]
-pub fn schnorr_sign(tweaked_priv_hex: &str, message: &str) -> String {
-    signer::schnorr_sign(tweaked_priv_hex, message)
+pub fn schnorr_sign(tweaked_priv_hex: &str, digest_hex: &str) -> String {
+    signer::schnorr_sign(tweaked_priv_hex, digest_hex)
 }
 
 #[wasm_bindgen]
-pub fn ecdsa_sign(priv_hex: &str, message: &str) -> String {
-    signer::ecdsa_sign(priv_hex, message)
+pub fn ecdsa_sign(priv_hex: &str, digest_hex: &str) -> String {
+    signer::ecdsa_sign(priv_hex, digest_hex)
 }
 
 #[wasm_bindgen]

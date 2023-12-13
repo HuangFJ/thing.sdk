@@ -1,6 +1,6 @@
 use crate::hd_wallet::HDWallet;
 use crate::signer::{ecdsa_sign, p2pkh_sign, p2tr_sign, schnorr_sign, Prevout};
-use bitcoin::hashes::sha256;
+use bitcoin::hashes::{sha256, Hash};
 use bitcoin::hex::DisplayHex;
 use bitcoin::key::TapTweak;
 use bitcoin::script::ScriptBuf;
@@ -16,7 +16,11 @@ const BTC_RPC_URL: &str = "http://127.0.0.1:18332";
 fn test_ecdsa_sign() {
     let message = "hello world";
     let priv_hex = "6cd9dc64451b6652203df996e255859aa9eefac8e99b9143510fafe5cae27822";
-    let sig = ecdsa_sign(priv_hex, message);
+    let hash_hex = sha256::Hash::hash(message.as_bytes())
+        .to_byte_array()
+        .as_hex()
+        .to_string();
+    let sig = ecdsa_sign(priv_hex, &hash_hex);
 
     let signature = ecdsa::Signature::from_str(sig.as_str()).unwrap();
     let secp = Secp256k1::new();
@@ -36,7 +40,11 @@ fn test_schnorr_sign() {
         Some("visit frame clay clap often dance pair cousin peanut thumb fine foster".to_string()),
     );
     let tweaked_priv_hex = &wallet.bip86_tweaked_priv_hex(None);
-    let sig = schnorr_sign(tweaked_priv_hex, message);
+    let hash_hex = sha256::Hash::hash(message.as_bytes())
+        .to_byte_array()
+        .as_hex()
+        .to_string();
+    let sig = schnorr_sign(tweaked_priv_hex, &hash_hex);
 
     let signature = schnorr::Signature::from_str(sig.as_str()).unwrap();
     let secp = Secp256k1::new();
