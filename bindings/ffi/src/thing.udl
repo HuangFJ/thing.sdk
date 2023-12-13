@@ -1,4 +1,5 @@
 namespace thing {
+    string schnorr_sign([ByRef] string tweaked_priv_hex, [ByRef] string message);
     string ecdsa_sign([ByRef] string priv_hex, [ByRef] string message);
     string p2tr_sign([ByRef] string address, [ByRef] string priv_hex, [ByRef] string tx_hex, sequence<Prevout> tx_prevouts);
     string p2pkh_sign([ByRef] string address, [ByRef] string priv_hex, [ByRef] string tx_hex);
@@ -22,4 +23,5 @@ interface HDWallet {
     string evm_priv_hex();
     string bip44_priv_hex();
     string bip86_priv_hex();
+    string bip86_tweaked_priv_hex(string? merkle_root_hex);
 };

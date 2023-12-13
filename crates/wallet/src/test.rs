@@ -1,15 +1,16 @@
-use std::str::FromStr;
-
 use crate::hd_wallet::HDWallet;
-use crate::signer::{ecdsa_sign, p2pkh_sign, p2tr_sign, Prevout};
+use crate::signer::{ecdsa_sign, p2pkh_sign, p2tr_sign, schnorr_sign, Prevout};
 use bitcoin::hashes::sha256;
 use bitcoin::hex::DisplayHex;
+use bitcoin::key::TapTweak;
 use bitcoin::script::ScriptBuf;
-use bitcoin::secp256k1::ecdsa::Signature;
-use bitcoin::secp256k1::{Message, Secp256k1, SecretKey};
+use bitcoin::secp256k1::{ecdsa, schnorr, Keypair, Message, Secp256k1, SecretKey};
 use bitcoin::*;
 use reqwest::Client;
 use serde_json::json;
+use std::str::FromStr;
+
+const BTC_RPC_URL: &str = "http://127.0.0.1:18332";
 
 #[test]
 fn test_ecdsa_sign() {
@@ -17,12 +18,34 @@ fn test_ecdsa_sign() {
     let priv_hex = "6cd9dc64451b6652203df996e255859aa9eefac8e99b9143510fafe5cae27822";
     let sig = ecdsa_sign(priv_hex, message);
 
-    let signature = Signature::from_str(sig.as_str()).unwrap();
+    let signature = ecdsa::Signature::from_str(sig.as_str()).unwrap();
     let secp = Secp256k1::new();
     let private_key = SecretKey::from_str(priv_hex).unwrap();
     let msg = Message::from_hashed_data::<sha256::Hash>(message.as_bytes());
     assert!(secp
         .verify_ecdsa(&msg, &signature, &private_key.public_key(&secp))
+        .is_ok());
+}
+
+#[test]
+fn test_schnorr_sign() {
+    let message = "hello world";
+    let merkle_root = None;
+    let wallet = HDWallet::new(
+        1,
+        Some("visit frame clay clap often dance pair cousin peanut thumb fine foster".to_string()),
+    );
+    let tweaked_priv_hex = &wallet.bip86_tweaked_priv_hex(None);
+    let sig = schnorr_sign(tweaked_priv_hex, message);
+
+    let signature = schnorr::Signature::from_str(sig.as_str()).unwrap();
+    let secp = Secp256k1::new();
+    let keypair = Keypair::from_seckey_str(&secp, &wallet.bip86_priv_hex())
+        .unwrap()
+        .tap_tweak(&secp, merkle_root);
+    let msg = Message::from_hashed_data::<sha256::Hash>(message.as_bytes());
+    assert!(secp
+        .verify_schnorr(&signature, &msg, &keypair.to_inner().x_only_public_key().0)
         .is_ok());
 }
 
@@ -45,6 +68,18 @@ fn test_hd_wallet() {
         wallet3.bip44_address(),
         "mzn7vdLThH2RRknmEMGZ8QB7tEQkmDaCWF"
     );
+    println!("mnemonic: {}", wallet3.export_mnemonic());
+    println!("master extended key: {}", wallet3.export_master_priv());
+    println!("evm private key: {}", wallet3.evm_priv_hex());
+    println!("evm address: {}", wallet3.evm_address());
+    println!("bip44 private key: {}", wallet3.bip44_priv_hex());
+    println!("bip44 address: {}", wallet3.bip44_address());
+    println!("bip86 private key: {}", wallet3.bip86_priv_hex());
+    println!(
+        "bip86 tweaked private key: {}",
+        wallet3.bip86_tweaked_priv_hex(None)
+    );
+    println!("bip86 address: {}", wallet3.bip86_address());
 }
 
 #[test]
@@ -66,7 +101,6 @@ fn test_evm() {
 
 #[tokio::test]
 async fn test_p2tr_sign() {
-    const BTC_RPC_URL: &str = "http://127.0.0.1:18332";
     // from
     const ADDRESS: &str = "tb1pakgwynt8cvc6wqeac3zxc3cpgkgcwdwyfehunlafyckcukq0h24q4p2kxa";
     const PRIV_HEX: &str = "6cd9dc64451b6652203df996e255859aa9eefac8e99b9143510fafe5cae27822";
@@ -135,7 +169,6 @@ async fn test_p2tr_sign() {
 
 #[tokio::test]
 async fn test_p2pkh_sign() {
-    const BTC_RPC_URL: &str = "http://127.0.0.1:18332";
     // from and to
     const ADDRESS: &str = "mzn7vdLThH2RRknmEMGZ8QB7tEQkmDaCWF";
     const PRIV_HEX: &str = "6cd9dc64451b6652203df996e255859aa9eefac8e99b9143510fafe5cae27822";

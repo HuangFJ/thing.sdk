@@ -1,8 +1,9 @@
 use bip39::Mnemonic;
 use bitcoin::bip32::{DerivationPath, Xpriv, Xpub};
 use bitcoin::hex::DisplayHex;
+use bitcoin::key::TapTweak;
 use bitcoin::secp256k1::{All, Secp256k1};
-use bitcoin::{Address, PublicKey};
+use bitcoin::{Address, PublicKey, TapNodeHash};
 use std::str::FromStr;
 use tiny_keccak::{Hasher, Keccak};
 
@@ -171,5 +172,12 @@ impl HDWallet {
             .secret_bytes()
             .as_hex()
             .to_string()
+    }
+
+    pub fn bip86_tweaked_priv_hex(&self, merkle_root_hex: Option<String>) -> String {
+        let merkle_root = merkle_root_hex.map(|v| TapNodeHash::from_str(&v).unwrap());
+        let keypair = self.bip86_xpriv().to_keypair(&self.secp);
+        let tweaked = keypair.tap_tweak(&self.secp, merkle_root);
+        tweaked.to_inner().secret_bytes().as_hex().to_string()
     }
 }

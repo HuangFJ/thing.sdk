@@ -8,6 +8,11 @@ pub struct Prevout {
 }
 
 #[wasm_bindgen]
+pub fn schnorr_sign(tweaked_priv_hex: &str, message: &str) -> String {
+    signer::schnorr_sign(tweaked_priv_hex, message)
+}
+
+#[wasm_bindgen]
 pub fn ecdsa_sign(priv_hex: &str, message: &str) -> String {
     signer::ecdsa_sign(priv_hex, message)
 }
@@ -80,5 +85,9 @@ impl HDWallet {
 
     pub fn bip86_priv_hex(&self) -> String {
         self.inner.bip86_priv_hex()
+    }
+
+    pub fn bip86_tweaked_priv_hex(&self, merkle_root: Option<String>) -> String {
+        self.inner.bip86_tweaked_priv_hex(merkle_root)
     }
 }

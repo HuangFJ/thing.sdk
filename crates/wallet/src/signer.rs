@@ -172,3 +172,13 @@ pub fn ecdsa_sign(priv_hex: &str, message: &str) -> String {
         .as_hex()
         .to_string()
 }
+
+pub fn schnorr_sign(tweaked_priv_hex: &str, message: &str) -> String {
+    let secp = Secp256k1::new();
+    let msg = Message::from_hashed_data::<sha256::Hash>(message.as_bytes());
+    let keypair = Keypair::from_seckey_str(&secp, tweaked_priv_hex).unwrap();
+    secp.sign_schnorr(&msg, &keypair)
+        .serialize()
+        .as_hex()
+        .to_string()
+}
