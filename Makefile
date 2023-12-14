@@ -6,6 +6,7 @@ AR := /usr/local/opt/llvm/bin/llvm-ar
 IOS_PROJECT := ../../projects/ios
 ANDROID_PROJECT := ../../projects/android
 WEB_PROJECT := ../../projects/web
+PYTHON_PROJECT := ../../projects/python
 
 IOS_LIB := lib$(FFI_NAMESPACE).a
 ANDROID_LIB := lib$(FFI_NAMESPACE).so
@@ -13,7 +14,18 @@ ANDROID_TARGET_LIB := libuniffi_$(FFI_NAMESPACE).so
 
 export PATH := ${NDK_TOOLCHAINS_PATH}:${PATH}
 
-all: ios android-aarch64 android-x86_64 armv7-linux-androideabi android-i686 android web
+all: ios android-aarch64 android-x86_64 armv7-linux-androideabi android-i686 android web python
+
+python:
+	cd bindings/ffi && \
+	cargo build --release && \
+	mkdir -p $(PYTHON_PROJECT) && \
+	cp ../../target/release/lib$(FFI_NAMESPACE).dylib $(PYTHON_PROJECT)/libuniffi_$(FFI_NAMESPACE).dylib && \
+	uniffi-bindgen \
+		generate src/thing.udl \
+		--language python \
+		--config uniffi.toml \
+		--out-dir $(PYTHON_PROJECT)
 
 web:
 	cd bindings/wasm && \

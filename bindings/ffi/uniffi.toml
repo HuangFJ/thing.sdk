@@ -1,2 +1,5 @@
 [bindings.swift]
 module_name = "thing"
+
+[bindings.python.external_packages]
+crate-name = "thing"
